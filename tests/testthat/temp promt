@@ -1,0 +1,575 @@
+Act as R wizard creating R packages for cran. You have a lot of experience creating mocking tests.
+
+
+#' Temporarily mock requests
+#'
+#' Mocking allows you to selectively and temporarily replace the response
+#' you would typically receive from a request with your own code. It's
+#' primarily used for testing.
+#'
+#' @param mock A function, a list, or `NULL`.
+#'
+#'   * `NULL` disables mocking and returns httr2 to regular operation.
+#'
+#'   * A list of responses will be returned in sequence. After all responses
+#'     have been used up, will return 503 server errors.
+#'
+#'   * For maximum flexibility, you can supply a function that that takes a
+#'     single argument, `req`, and returns either `NULL` (if it doesn't want to
+#'     handle the request) or a [response] (if it does).
+#'
+#' @param code Code to execute in the temporary environment.
+#' @param env Environment to use for scoping changes.
+#' @returns `with_mock()` returns the result of evaluating `code`.
+#' @export
+#' @examples
+#' # This function should perform a response against google.com:
+#' google <- function() {
+#'   request("http://google.com") |>
+#'     req_perform()
+#' }
+#'
+#' # But I can use a mock to instead return my own made up response:
+#' my_mock <- function(req) {
+#'   response(status_code = 403)
+#' }
+#' try(with_mock(my_mock, google()))
+with_mocked_responses <- function(mock, code) {
+  mock <- as_mock_function(mock)
+  withr::with_options(list(httr2_mock = mock), code)
+}
+
+#' @export
+#' @rdname with_mocked_responses
+#' @usage NULL
+with_mock <- function(mock, code) {
+  lifecycle::deprecate_warn("1.0.0", "with_mock()", "with_mocked_responses()")
+  with_mocked_responses(mock, code)
+}
+
+#' @export
+#' @rdname with_mocked_responses
+local_mocked_responses <- function(mock, env = caller_env()) {
+  mock <- as_mock_function(mock)
+  withr::local_options(httr2_mock = mock, .local_envir = env)
+}
+
+#' @export
+#' @rdname with_mocked_responses
+#' @usage NULL
+local_mock <- function(mock, env = caller_env()) {
+  lifecycle::deprecate_warn("1.0.0", "local_mock()", "local_mocked_responses()")
+  local_mocked_responses(mock, env)
+}
+
+as_mock_function <- function(mock, error_call = caller_env()) {
+  if (is.null(mock)) {
+    mock
+  } else if (is.function(mock)) {
+    check_function2(mock, args = "req", call = error_call)
+    mock
+  } else if (is_formula(mock)) {
+    mock <- as_function(mock, call = error_call)
+  } else if (is.list(mock)) {
+    mocked_response_sequence(!!!mock)
+  } else {
+    cli::cli_abort(
+      "{.arg mock} must be a function or list, not {.obj_type_friendly {mock}}.",
+      call = error_call
+    )
+  }
+}
+
+mocked_response_sequence <- function(...) {
+  responses <- list2(...)
+
+  n <- length(responses)
+  i <- 0
+  function(req) {
+    if (i >= n) {
+      response(503)
+    } else {
+      i <<- i + 1
+      responses[[i]]
+    }
+  }
+}
+
+
+#' Mocking tools
+#'
+#' @description
+#' `with_mocked_bindings()` and `local_mocked_bindings()` provide tools for
+#' "mocking", temporarily redefining a function so that it behaves differently
+#' during tests. This is helpful for testing functions that depend on external
+#' state (i.e. reading a value from a file or a website, or pretending a package
+#' is or isn't installed).
+#'
+#' These functions represent a second attempt at bringing mocking to testthat,
+#' incorporating what we've learned from the mockr, mockery, and mockthat
+#' packages.
+#'
+#' # Use
+#'
+#' There are four places that the function you are trying to mock might
+#' come from:
+#'
+#' * Internal to your package.
+#' * Imported from an external package via the `NAMESPACE`.
+#' * The base environment.
+#' * Called from an external package with `::`.
+#'
+#' They are described in turn below.
+#'
+#' ## Internal & imported functions
+#'
+#' You mock internal and imported functions the same way. For example, take
+#' this code:
+#'
+#' ```R
+#' some_function <- function() {
+#'   another_function()
+#' }
+#' ```
+#'
+#' It doesn't matter whether `another_function()` is defined by your package
+#' or you've imported it from a dependency with `@import` or `@importFrom`,
+#' you mock it the same way:
+#'
+#' ```R
+#' local_mocked_bindings(
+#'   another_function = function(...) "new_value"
+#' )
+#' ```
+#'
+#' ## Base functions
+#'
+#' To mock a function in the base package, you need to make sure that you
+#' have a binding for this function in your package. It's easiest to do this
+#' by binding the value to `NULL`. For example, if you wanted to mock
+#' `interactive()` in your package, you'd need to include this code somewhere
+#' in your package:
+#'
+#' ```R
+#' interactive <- NULL
+#' ```
+#'
+#' Why is this necessary? `with_mocked_bindings()` and `local_mocked_bindings()`
+#' work by temporarily modifying the bindings within your package's namespace.
+#' When these tests are running inside of `R CMD check` the namespace is locked
+#' which means it's not possible to create new bindings so you need to make sure
+#' that the binding exists already.
+#'
+#' ## Namespaced calls
+#'
+#' It's trickier to mock functions in other packages that you call with `::`.
+#' For example, take this minor variation:
+#'
+#' ```R
+#' some_function <- function() {
+#'   anotherpackage::another_function()
+#' }
+#' ```
+#'
+#' To mock this function, you'd need to modify `another_function()` inside the
+#' `anotherpackage` package. You _can_ do this by supplying the `.package`
+#' argument to `local_mocked_bindings()` but we don't recommend it because
+#' it will affect all calls to `anotherpackage::another_function()`, not just
+#' the calls originating in your package. Instead, it's safer to either import
+#' the function into your package, or make a wrapper that you can mock:
+#'
+#' ```R
+#' some_function <- function() {
+#'   my_wrapper()
+#' }
+#' my_wrapper <- function(...) {
+#'   anotherpackage::another_function(...)
+#' }
+#'
+#' local_mocked_bindings(
+#'   my_wrapper = function(...) "new_value"
+#' )
+#' ```
+#' @export
+#' @param ... Name-value pairs providing new values (typically functions) to
+#'   temporarily replace the named bindings.
+#' @param code Code to execute with specified bindings.
+#' @param .env Environment that defines effect scope. For expert use only.
+#' @param .package The name of the package where mocked functions should be
+#'   inserted. Generally, you should not supply this as it will be automatically
+#'   detected when whole package tests are run or when there's one package
+#'   under active development (i.e. loaded with [pkgload::load_all()]).
+#'   We don't recommend using this to mock functions in other packages,
+#'   as you should not modify namespaces that you don't own.
+local_mocked_bindings <- function(..., .package = NULL, .env = caller_env()) {
+  bindings <- list2(...)
+  check_bindings(bindings)
+
+  .package <- .package %||% dev_package()
+  ns_env <- ns_env(.package)
+
+  # Rebind in namespace, imports, and the global environment
+  envs <- list(ns_env, env_parent(ns_env), globalenv())
+  bindings_found <- rep_named(names(bindings), FALSE)
+  for (env in envs) {
+    local_bindings_rebind(!!!bindings, .env = env, .frame = .env)
+    bindings_found <- bindings_found | env_has(env, names(bindings))
+  }
+
+  # And mock S3 methods
+  methods_env <- ns_env[[".__S3MethodsTable__."]]
+  local_bindings_rebind(!!!bindings, .env = methods_env, .frame = .env)
+
+  # If needed, also mock in the package environment so we can call directly
+  if (is_attached(paste0("package:", .package))) {
+    local_bindings_rebind(!!!bindings, .env = pkg_env(.package), .frame = .env)
+  }
+  # And in the current testing environment
+  test_env <- the$testing_env
+  if (!is.null(test_env)) {
+    local_bindings_rebind(!!!bindings, .env = test_env, .frame = .env)
+  }
+
+  if (any(!bindings_found)) {
+    missing <- names(bindings)[!bindings_found]
+    cli::cli_abort("Can't find binding for {.arg {missing}}")
+  }
+
+  invisible()
+}
+
+#' @rdname local_mocked_bindings
+#' @export
+with_mocked_bindings <- function(code, ..., .package = NULL) {
+  local_mocked_bindings(..., .package = .package)
+  code
+}
+
+local_testing_env <- function(env, frame = caller_env()) {
+  local_bindings(testing_env = env, .env = the, .frame = frame)
+}
+
+# helpers -----------------------------------------------------------------
+
+# Wrapper around local_bindings() that only rebinds existing values,
+# automatically unlocking as needed. We can only rebind because most of
+# these environments are locked, meaning we can't add new bindings.
+local_bindings_rebind <- function(..., .env = .frame, .frame = caller_env()) {
+  bindings <- list2(...)
+  bindings <- bindings[env_has(.env, names(bindings))]
+
+  if (length(bindings) == 0) {
+    return()
+  }
+
+  nms <- names(bindings)
+  locked <- env_binding_unlock(.env, nms)
+  withr::defer(env_binding_lock(.env, nms[locked]), envir = .frame)
+
+  local_bindings(!!!bindings, .env = .env, .frame = .frame)
+
+  invisible()
+}
+
+dev_package <- function() {
+  if (is_testing() && testing_package() != "") {
+    testing_package()
+  } else {
+    loaded <- loadedNamespaces()
+    is_dev <- map_lgl(loaded, function(x) !is.null(pkgload::dev_meta(x)))
+    if (sum(is_dev) == 0) {
+      cli::cli_abort("No packages loaded with pkgload")
+    } else if (sum(is_dev) == 1) {
+      loaded[is_dev]
+    } else {
+      cli::cli_abort("Multiple packages loaded with pkgload")
+    }
+  }
+}
+
+check_bindings <- function(x, error_call = caller_env()) {
+  if (!is_named(x)) {
+    cli::cli_abort(
+      "All elements of {.arg ...} must be named.",
+      call = error_call
+    )
+  }
+}
+
+# For testing -------------------------------------------------------------
+
+test_mock_direct <- function() {
+  "y"
+}
+
+test_mock_internal <- function() {
+  test_mock_internal2()
+}
+test_mock_internal2 <- function() "y"
+
+test_mock_imports <- function() {
+  as.character(sym("y"))
+}
+
+test_mock_namespaced <- function() {
+  as.character(rlang::sym("y"))
+}
+
+test_mock_method <- function(x) {
+  UseMethod("test_mock_method")
+}
+#' @export
+test_mock_method.integer <- function(x) {
+  "y"
+}
+
+test_mock_base <- function() {
+  interactive()
+}
+interactive <- NULL
+
+show_bindings <- function(name, env = caller_env()) {
+  envs <- env_parents(env)
+  has_binding <- Filter(function(env) env_has(env, name), envs)
+  lapply(has_binding, env_desc)
+  invisible()
+}
+
+test_mock_value <- 10
+
+env_desc <- function(env) {
+  cat(obj_address(env), ": ", env_name(env), "\n", sep = "")
+}
+
+HERE YOU CAN SEE FUNCTION
+
+#' Find Bible Verses from BibleGateway
+#'
+#' This function searches for Bible verses using the BibleGateway API based on a text query.
+#' It returns the formatted verse text with context.
+#'
+#' @param text_to_find A character string representing the text to search for in the Bible.
+#'   Spaces will be converted to '+' for the URL.
+#' @param version A character string specifying the Bible version to use (e.g., "RVR1960", "NIV", "ESV").
+#'   Defaults to "RVR1960".
+#'
+#' @return Invisibly returns a character vector with the formatted Bible verse(s) found,
+#'         or NULL if no verses are found. The formatted verses are also printed to the console.
+#'
+#' @examples
+#' # Search for a single verse (printing to console)
+#' find_bible_verse("el amor es pasciente")
+#'
+#' # Search for a verse and capture the result
+#' result <- find_bible_verse("fe esperanza amor")
+#' # Print result captured.
+#' cat(result, sep = "\n")
+#'
+#' # Example of no results
+#' find_bible_verse("this_is_a_non_sense_query")
+#'
+#' @export
+find_bible_verse <- function(text_to_find, version = "RVR1960") {
+  # URL Construction and Request
+  url <- paste0("https://www.biblegateway.com/quicksearch/?quicksearch=",
+                gsub(x = text_to_find, pattern = "\\s+", replacement = "\\+"),
+                "&version=", version)
+
+  response <- tryCatch({
+    url |>
+      httr2::request() |>
+      httr2::req_perform() |>
+      httr2::resp_body_html()
+  }, error = function(e) {
+    warning("Error fetching data from Bible Gateway: ", e$message)
+    return(NULL) # Return NULL on error
+  })
+
+  if (is.null(response)) {
+    message("No verses found.")
+    return(invisible(NULL))
+  }
+
+  # Extract Bible Verse Elements
+  bible_elements <-
+    rvest::html_elements(response,
+                         xpath = '//*[(@class="bible-item" or @class="row bible-item") and @data-osis]')
+
+  if (length(bible_elements) == 0) {
+    message("No verses found for the given query.")
+    return(invisible(NULL))
+  }
+
+  # Extract verse indices
+  verse_index <-
+    rvest::html_elements(bible_elements, ".bible-item-title") |>
+    rvest::html_text()
+
+  # Extract and clean verse text
+  verse_text <-
+    rvest::html_elements(bible_elements, ".bible-item-text") |>
+    rvest::html_text() |>
+    gsub(pattern = "^\n| ?In Context.*", replacement = "")
+
+  # Format the extracted verses
+  formatted_text <-
+    paste0("__", verse_index, "__: ", verse_text) |>
+    paste0("> *", a = _, "*")
+
+  cat(paste0(formatted_text, collapse = "\n"))
+
+  invisible(formatted_text)
+
+}
+
+
+HERE YOU CAN SEE HOW IT WAS TESTED
+
+test_that("find_bible_verse works correctly", {
+  # Test case 1: Mock a successful response with one verse
+  mock_response_success_single <- function(req) {
+    if (grepl("quicksearch=love\\+is\\+patient", req$url)) {
+      response(
+        status_code = 200,
+        headers = "Content-Type: text/html",
+        body = '
+<div class="content-section">
+                        <div class="search-tools">
+                            <input type="hidden" name="quicksearch" value="el amor es pasciente"><input class="dropdowns" type="submit" value="Change">                                                                                    <div class="mobile-rpp">
+                                <div class="js-dropdowns">
+                                    <span class="mobile-rpp-display"></span>
+                                    <span class="dropdown-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 11.5 6.5" width="11.5" height="6.5"><title>dropdown</title><use xlink:href="#icon-dropdown"></use></svg>
+</span>
+                                </div>
+                                <span> results per page</span>
+                            </div>
+                        </div>
+                                            <div class="search-suggested-result"><h4 class="search-result-heading">Suggested result<div class="vote" data-osis="1Cor.13.4"><span class="btn helpful" data-key="093cd3592eaa09ff213ae3f3a122aade">Helpful</span><span class="btn unhelpful" data-key="093cd3592eaa09ff213ae3f3a122aade">Not Helpful</span></div><div class="vote-message">Thank you for your feedback. <span class="undo" data-key="093cd3592eaa09ff213ae3f3a122aade">Undo</span>.</div></h4><div class="text-html"><article class="bible-item" data-osis="1Cor.13.4"><span class="bible-item-title-wrap"><a class="bible-item-title" href="/passage/?search=1%20Corintios%2013%3A4&amp;version=RVR1960">1 Corintios 13:4</a></span><br>
+<div class="bible-item-text"><b>El</b> <b>amor</b> <b>es</b> sufrido, <b>es</b> benigno; <b>el</b> <b>amor</b> no tiene envidia, <b>el</b> <b>amor</b> no <b>es</b> jactancioso, no se envanece; <div class="bible-item-extras"><a href="/passage/?search=1 Corintios%2013%3A3%2D5&amp;version=RVR1960">In Context</a>
+ | <a href="/passage/?search=1%20Corintios%2013&amp;version=RVR1960">Full Chapter</a>
+ | <a href="/verse/en/1%20Corintios%2013%3A4">Other Translations</a>
+</div><!-- .bible-item-extras -->
+</div><!-- .bible-item-text --></article>
+</div></div><!-- .search-suggested-result --><p>Sorry, we didn’t find any results for your search. Please try the following:</p><ul><li>Double-check spelling, especially people and place names.</li><li>Make sure there are spaces between words. Bible Gateway treats “nameoftheFather” and “name of the Father” differently.</li><li>Use fewer words in your search, especially if you’re unsure of the exact phrase. For example, “baptizing name Father” and “baptizing them in the name of the Father” will both return Matthew 28:19; however, the latter leaves a greater chance for spelling and syntax errors.</li><li>Retry your search in another translation.</li></ul><br>                      <div class="info-viewer-footer d-flex">
+                          <div class="iv-prev-page">
+                                                      </div>
+                          <div class="iv-next-page">
+                                                      </div>
+                        </div>
+                      </div>
+      '
+      )
+    } else {
+      NULL
+    }
+  }
+
+
+  with_mocked_responses(mock_response_success_single, {
+    result <- find_bible_verse("el amor es pasciente")
+    expect_type(result, "character")
+    expect_length(result, 1)
+    expect_match(result, "> \\*__1 Corintios 13:4__: El amor es sufrido, es benigno; el amor no tiene envidia, el amor no es jactancioso, no se envanece;\\*")
+  })
+
+
+  # Test case 2: Mock a successful response with multiple verses
+  mock_response_success_multiple <- function(req) {
+    if (grepl("quicksearch=faith\\+hope\\+love", req$url)) {
+      response(
+        status_code = 200,
+        headers = "Content-Type: text/html",
+        body = '
+<div class="search-result-list"><div class="text-html"><ol start="1"><li class="row bible-item" data-osis="1Cor.13.13"><div class="bible-item-title-wrap col-sm-3"><a class="bible-item-title" href="/passage/?search=1%20Corintios%2013%3A13&amp;version=RVR1960">1 Corintios 13:13</a></div>
+<div class="bible-item-text col-sm-9">
+Y ahora permanecen la <b>fe</b>, la <b>esperanza</b> y el <b>amor</b>, estos tres; pero el mayor de ellos es el <b>amor</b>.<div class="bible-item-extras"><a href="/passage/?search=1%20Corintios%2013%3A12%2D13&amp;version=RVR1960">In Context</a>
+ | <a href="/passage/?search=1%20Corintios%2013&amp;version=RVR1960">Full Chapter</a>
+ | <a href="/verse/es/1%20Corintios%2013%3A13">Other Translations</a>
+</div><!-- .bible-item-extras -->
+</div><!-- bible-item-text -->
+</li>
+<li class="row bible-item" data-osis="1Thess.1.3"><div class="bible-item-title-wrap col-sm-3"><a class="bible-item-title" href="/passage/?search=1%20Tesalonicenses%201%3A3&amp;version=RVR1960">1 Tesalonicenses 1:3</a></div>
+<div class="bible-item-text col-sm-9">
+acordándonos sin cesar delante del Dios y Padre nuestro de la obra de vuestra <b>fe</b>, del trabajo de vuestro <b>amor</b> y de vuestra constancia en la <b>esperanza</b> en nuestro Señor Jesucristo.<div class="bible-item-extras"><a href="/passage/?search=1%20Tesalonicenses%201%3A2%2D4&amp;version=RVR1960">In Context</a>
+ | <a href="/passage/?search=1%20Tesalonicenses%201&amp;version=RVR1960">Full Chapter</a>
+ | <a href="/verse/es/1%20Tesalonicenses%201%3A3">Other Translations</a>
+</div><!-- .bible-item-extras -->
+</div><!-- bible-item-text -->
+</li>
+<li class="row bible-item" data-osis="1Thess.5.8"><div class="bible-item-title-wrap col-sm-3"><a class="bible-item-title" href="/passage/?search=1%20Tesalonicenses%205%3A8&amp;version=RVR1960">1 Tesalonicenses 5:8</a></div>
+<div class="bible-item-text col-sm-9">
+Pero nosotros, que somos del día, seamos sobrios, habiéndonos vestido con la coraza de <b>fe</b> y de <b>amor</b>, y con la <b>esperanza</b> de salvación como yelmo.<div class="bible-item-extras"><a href="/passage/?search=1%20Tesalonicenses%205%3A7%2D9&amp;version=RVR1960">In Context</a>
+ | <a href="/passage/?search=1%20Tesalonicenses%205&amp;version=RVR1960">Full Chapter</a>
+ | <a href="/verse/es/1%20Tesalonicenses%205%3A8">Other Translations</a>
+</div><!-- .bible-item-extras -->
+</div><!-- bible-item-text -->
+</li>
+</ol>
+</div></div>
+        '
+      )
+    } else {
+      NULL
+    }
+  }
+  with_mocked_responses(mock_response_success_multiple, {
+    result <- find_bible_verse("fe esperanza amor")
+    expect_type(result, "character")
+    expect_length(result, 3)
+    expect_match(result[1], "> \\*__1 Corintios 13:13__: Y ahora permanecen la fe, la esperanza y el amor, estos tres; pero el mayor de ellos es el amor.\\*")
+    expect_match(result[2], "> \\*__1 Tesalonicenses 1:3__: acordándonos sin cesar delante del Dios y Padre nuestro de la obra de vuestra fe, del trabajo de vuestro amor y de vuestra constancia en la esperanza en nuestro Señor Jesucristo.\\*")
+    expect_match(result[3], "> \\*__1 Tesalonicenses 5:8__: Pero nosotros, que somos del día, seamos sobrios, habiéndonos vestido con la coraza de fe y de amor, y con la esperanza de salvación como yelmo.\\*")
+  })
+
+  # Test case 3: Mock a response with no verses found
+  mock_response_no_verses <- function(req) {
+    if (grepl("quicksearch=this_is_a_non_sense_query", req$url)) {
+      response(
+        status_code = 200,
+        headers = "Content-Type: text/html",
+        body = '
+<div class="content-section">
+                        <div class="search-tools">
+                            <input type="hidden" name="quicksearch" value="this_is_a_non_sense_query"><input class="dropdowns" type="submit" value="Change">                                                                                    <div class="mobile-rpp">
+                                <div class="js-dropdowns">
+                                    <span class="mobile-rpp-display"></span>
+                                    <span class="dropdown-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 11.5 6.5" width="11.5" height="6.5"><title>dropdown</title><use xlink:href="#icon-dropdown"></use></svg>
+</span>
+                                </div>
+                                <span> results per page</span>
+                            </div>
+                        </div>
+                                            <p>Sorry, we didn’t find any results for your search. Please try the following:</p><ul><li>Double-check spelling, especially people and place names.</li><li>Make sure there are spaces between words. Bible Gateway treats “nameoftheFather” and “name of the Father” differently.</li><li>Use fewer words in your search, especially if you’re unsure of the exact phrase. For example, “baptizing name Father” and “baptizing them in the name of the Father” will both return Matthew 28:19; however, the latter leaves a greater chance for spelling and syntax errors.</li><li>Retry your search in another translation.</li></ul><br>                      <div class="info-viewer-footer d-flex">
+                          <div class="iv-prev-page">
+                                                      </div>
+                          <div class="iv-next-page">
+                                                      </div>
+                        </div>
+                      </div>
+      '
+      )
+    }else {
+      NULL
+    }
+  }
+
+  with_mocked_responses(mock_response_no_verses, {
+    result <- find_bible_verse("this_is_a_non_sense_query")
+    expect_null(result)
+  })
+
+  # Test case 4: Mock a response with error
+  mock_response_error <- function(req) {
+    if (grepl("quicksearch=error", req$url)) {
+      response(status_code = 500)
+    } else {
+      NULL
+    }
+  }
+
+  with_mocked_responses(mock_response_error, {
+    expect_warning(result <- find_bible_verse("error"), "Error fetching data from Bible Gateway")
+    expect_null(result)
+  })
+
+})
