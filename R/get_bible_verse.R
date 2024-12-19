@@ -1,6 +1,6 @@
 #' Get a Specific Bible Verse from BibleGateway
 #'
-#' This function retrieves a specific Bible verse using the BibleGateway API
+#' This function retrieves a specific Bible verse using the BibleGateway web site
 #' based on a verse reference query. It returns the formatted verse text.
 #'
 #' @param search A character string representing the Bible verse reference to search for (e.g., "John 3:16", "Psalm 23").
@@ -86,6 +86,5 @@ get_bible_verse <- function(search, version = "RVR1960") {
     paste0("__", search, "__: ", a = _) |>
     paste0("> *", a = _, "*")
 
-  cat(formatted_text)
-  invisible(formatted_text)
+  return(formatted_text)
 }

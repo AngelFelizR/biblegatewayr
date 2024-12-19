@@ -1,6 +1,6 @@
 #' Find Bible Verses from BibleGateway
 #'
-#' This function searches for Bible verses using the BibleGateway API based on a text query.
+#' This function searches for Bible verses using the BibleGateway web site based on a text query.
 #' It returns the formatted verse text with context.
 #'
 #' @param text_to_find A character string representing the text to search for in the Bible.
@@ -71,8 +71,6 @@ find_bible_verse <- function(text_to_find, version = "RVR1960") {
     paste0("__", verse_index, "__: ", verse_text) |>
     paste0("> *", a = _, "*")
 
-  cat(paste0(formatted_text, collapse = "\n"))
-
-  invisible(formatted_text)
+  return(formatted_text)
 
 }

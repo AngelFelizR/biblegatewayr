@@ -1,14 +1,15 @@
-Package: SearchBible
-Title: Tools for Accessing Bible Verses from BibleGateway
-Version: 0.0.1
+Package: biblegatewayr
+Title: Access Bible Verses from BibleGateway
+Version: 0.1.0
 Authors@R: 
-    person("Angel", "Feliz", , "angel.esteban.feliz@gmail.com", role = c("aut", "cre"))
+    person("Angel", "Feliz", email = "angel.esteban.feliz@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0009-0007-2910-1808"))
 Description: |
-    This R package provides functions to retrieve Bible verses from BibleGateway.
-    The 'find_bible_verse' function allows you to search for Bible verses
-    containing specific text, while the 'get_bible_verse' function enables
-    retrieval of verses based on their canonical reference (e.g., "John 3:16").
-    Both functions support multiple Bible versions and provide formatted output.
+    This R package provides functions to interact with the BibleGateway web page.
+    It includes 'get_bible_verse' to retrieve specific verses by canonical
+    reference (e.g., "John 3:16") and 'find_bible_verse' to search for verses
+    containing specific text. Both functions support multiple Bible versions 
+    and return formatted output, making it easy to incorporate Bible verses
+    into markdown documents.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -19,3 +20,5 @@ Imports:
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+URL: https://github.com/angelfelizr/biblegatewayr, https://angelfelizr.github.io/biblegatewayr/
+BugReports: https://github.com/angelfelizr/biblegatewayr/issues
