@@ -18,7 +18,7 @@ Invisibly returns a character vector with the formatted Bible verse(s) found,
 or NULL if no verses are found. The formatted verses are also printed to the console.
 }
 \description{
-This function searches for Bible verses using the BibleGateway API based on a text query.
+This function searches for Bible verses using the BibleGateway web site based on a text query.
 It returns the formatted verse text with context.
 }
 \examples{

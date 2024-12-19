@@ -18,7 +18,7 @@ Invisibly returns a character string with the formatted Bible verse, or NULL if 
 The formatted verse is also printed to the console.
 }
 \description{
-This function retrieves a specific Bible verse using the BibleGateway API
+This function retrieves a specific Bible verse using the BibleGateway web site
 based on a verse reference query. It returns the formatted verse text.
 }
 \examples{

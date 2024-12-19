@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(SearchBible)
+library(biblegatewayr)
 
-test_check("SearchBible")
+test_check("biblegatewayr")

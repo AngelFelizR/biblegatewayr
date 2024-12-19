@@ -4,8 +4,6 @@ execute:
   output: asis
 ---
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -51,7 +49,7 @@ library(biblegatewayr)
 get_bible_verse("Juan 3:16") |> cat()
 
 # Get the verse Psalm 23
-get_bible_verse("Salmos 23")
+get_bible_verse("Salmos 23") |> cat()
 ```
 
 ### Search for Verses
@@ -63,7 +61,7 @@ This example demonstrates how to search for verses containing specific text usin
 find_bible_verse("el amor es paciente", version = "NTV") |> cat(sep = "\n\n")
 
 # Search for verses containing "fe esperanza amor" in the NTV version
-find_bible_verse("fe esperanza amor", version = "NTV")
+find_bible_verse("fe esperanza amor", version = "NTV") |> cat(sep = "\n\n")
 ```
 
 ## Main components

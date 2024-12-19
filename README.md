@@ -1,7 +1,5 @@
 
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
 # biblegatewayr
 
 <!-- badges: start -->
@@ -54,20 +52,20 @@ get_bible_verse("Juan 3:16") |> cat()
 ``` r
 
 # Get the verse Psalm 23
-get_bible_verse("Salmos 23")
+get_bible_verse("Salmos 23") |> cat()
 ```
 
-\[1\] “\> ***Salmos 23**: <sup>**1**</sup> Jehová es mi pastor; nada me
-faltará. <sup>**2**</sup> En lugares de delicados pastos me hará
-descansar; Junto a aguas de reposo me pastoreará. <sup>**3**</sup>
-Confortará mi alma; Me guiará por sendas de justicia por amor de su
-nombre. <sup>**4**</sup> Aunque ande en valle de sombra de muerte, No
-temeré mal alguno, porque tú estarás conmigo; Tu vara y tu cayado me
-infundirán aliento. <sup>**5**</sup> Aderezas mesa delante de mí en
-presencia de mis angustiadores; Unges mi cabeza con aceite; mi copa está
-rebosando. <sup>**6**</sup> Ciertamente el bien y la misericordia me
-seguirán todos los días de mi vida, Y en la casa de Jehová moraré por
-largos días.*”
+> ***Salmos 23**: <sup>**1**</sup> Jehová es mi pastor; nada me faltará.
+> <sup>**2**</sup> En lugares de delicados pastos me hará descansar;
+> Junto a aguas de reposo me pastoreará. <sup>**3**</sup> Confortará mi
+> alma; Me guiará por sendas de justicia por amor de su nombre.
+> <sup>**4**</sup> Aunque ande en valle de sombra de muerte, No temeré
+> mal alguno, porque tú estarás conmigo; Tu vara y tu cayado me
+> infundirán aliento. <sup>**5**</sup> Aderezas mesa delante de mí en
+> presencia de mis angustiadores; Unges mi cabeza con aceite; mi copa
+> está rebosando. <sup>**6**</sup> Ciertamente el bien y la misericordia
+> me seguirán todos los días de mi vida, Y en la casa de Jehová moraré
+> por largos días.*
 
 ### Search for Verses
 
@@ -98,14 +96,15 @@ find_bible_verse("el amor es paciente", version = "NTV") |> cat(sep = "\n\n")
 ``` r
 
 # Search for verses containing "fe esperanza amor" in the NTV version
-find_bible_verse("fe esperanza amor", version = "NTV")
+find_bible_verse("fe esperanza amor", version = "NTV") |> cat(sep = "\n\n")
 ```
 
-\[1\] “\> ***1 Corintios 13:7**: El amor nunca se da por vencido, jamás
-pierde la fe, siempre tiene esperanzas y se mantiene firme en toda
-circunstancia.*” \[2\] “\> ***1 Corintios 13:13**: Tres cosas durarán
-para siempre: la fe, la esperanza y el amor; y la mayor de las tres es
-el amor.*”
+> ***1 Corintios 13:7**: El amor nunca se da por vencido, jamás pierde
+> la fe, siempre tiene esperanzas y se mantiene firme en toda
+> circunstancia.*
+
+> ***1 Corintios 13:13**: Tres cosas durarán para siempre: la fe, la
+> esperanza y el amor; y la mayor de las tres es el amor.*
 
 ## Main components
 
