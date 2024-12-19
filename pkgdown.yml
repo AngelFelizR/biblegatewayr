@@ -1,0 +1,8 @@
+pandoc: 3.1.11
+pkgdown: 2.1.1
+pkgdown_sha: ~
+articles: {}
+last_built: 2024-12-19T05:28Z
+urls:
+  reference: https://angelfelizr.github.io/biblegatewayr/reference
+  article: https://angelfelizr.github.io/biblegatewayr/articles
