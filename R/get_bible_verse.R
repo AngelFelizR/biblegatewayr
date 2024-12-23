@@ -55,10 +55,9 @@ get_bible_verse <- function(search, version = "RVR1960") {
 
   # Extract and format verse index
   verse_index <-
-    rvest::html_element(verse_elements, "sup") |>
+    rvest::html_element(verse_elements, xpath = 'sup[@class="versenum"]') |>
     rvest::html_text(trim = TRUE) |>
-    (\(x) c("1", x[-1L]))() |>
-    (\(x) ifelse(grepl("^\\d+$", x), x, NA_character_))() |>
+    (\(x) c(ifelse(is.na(x[1L]), "1", x[1L]), x[-1L]))() |>
     fill_na() |>
     paste0("^**",a =  _, "**^")
 
@@ -68,13 +67,26 @@ get_bible_verse <- function(search, version = "RVR1960") {
   # Extract and clean verse text
   verse_text <-
     rvest::html_elements(verse_elements,
-                         xpath = ".//text()[not(parent::sup)]") |>
+                         xpath = './/text()[not(ancestor::sup[@class="versenum"]) and not(ancestor::sup[@class="crossreference"])]') |>
     rvest::html_text() |>
-    (\(x) x[!grepl("^[A-Z]$|^\\d+.+$", x)])() |>
-    tapply(INDEX = verse_index,
-           FUN = paste,
-           collapse = " ") |>
-    unname()
+    grep(pattern = "^\\d+.$", value = TRUE, invert = TRUE) |>
+    # Pasting test if starting with space
+    (\(x) tapply(x,
+                 INDEX = cumsum(!grepl("^\\s", x)),
+                 FUN = paste0,
+                 collapse = "") )()
+
+  # Pasting if verses are split in several lines
+  if(any(table(verse_index) > 1L)){
+
+    verse_text <-
+      tapply(verse_text,
+             INDEX = verse_index,
+             FUN = paste0,
+             collapse = " ") |>
+      to_sentence()
+
+  }
 
   # Removing any verse duplication
   verse_index <- unique(verse_index)

@@ -1,4 +1,5 @@
 test_that("get_bible_verse works correctly", {
+
   # Test case 1: Mock a successful response with a single verse
   mock_response_success_single <- function(req) {
     if (grepl("search=Juan\\+3:16", req$url)) {
@@ -27,6 +28,7 @@ test_that("get_bible_verse works correctly", {
     expect_match(result, "> \\*__Juan 3:16__:  Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.\\*")
   })
 
+
   # Test case 2: Mock a successful response with multiple verses in a chapter
   mock_response_success_multiple <- function(req) {
     if (grepl("search=Salmos\\+23", req$url)) {
@@ -53,11 +55,46 @@ test_that("get_bible_verse works correctly", {
     expect_type(result, "character")
     expect_length(result, 1)
     expect_match(result,
-                 "> *__Salmos 23__: ^**1**^ Jehová es mi pastor; nada me faltará. ^**2**^ En lugares de delicados pastos me hará descansar; Junto a aguas de reposo me pastoreará. ^**3**^ Confortará mi alma; Me guiará por sendas de justicia por amor de su nombre. ^**4**^ Aunque ande en valle de sombra de muerte, No temeré mal alguno, porque tú estarás conmigo; Tu vara y tu cayado me infundirán aliento. ^**5**^ Aderezas mesa delante de mí en presencia de mis angustiadores; Unges mi cabeza con aceite; mi copa está rebosando. ^**6**^ Ciertamente el bien y la misericordia me seguirán todos los días de mi vida, Y en la casa de Jehová moraré por largos días.*",
+                 "> *__Salmos 23__: ^**1**^ Jehová es mi pastor; nada me faltará. ^**2**^ En lugares de delicados pastos me hará descansar; junto a aguas de reposo me pastoreará. ^**3**^ Confortará mi alma; me guiará por sendas de justicia por amor de su nombre. ^**4**^ Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo; tu vara y tu cayado me infundirán aliento. ^**5**^ Aderezas mesa delante de mí en presencia de mis angustiadores; unges mi cabeza con aceite; mi copa está rebosando. ^**6**^ Ciertamente el bien y la misericordia me seguirán todos los días de mi vida, y en la casa de jehová moraré por largos días.",
                  fixed = TRUE)
   })
 
-  # Test case 3: Mock a response with no verses found
+
+  # Test case 3: Mock a successful response with crossreference
+  mock_response_crossreference <- function(req) {
+    if (grepl("search=Juan\\+8:12-16", req$url)) {
+      httr2::response(
+        status_code = 200,
+        headers = "Content-Type: text/html",
+        body = '
+<div class="passage-content passage-class-0"><div class="version-RVR1960 result-text-style-normal text-html">
+ <h3><span id="es-RVR1960-26395" class="text John-8-12">Jesús, la luz del mundo</span></h3><p><span class="text John-8-12"><sup class="versenum">12&nbsp;</sup>Otra vez Jesús les habló, diciendo: Yo soy la luz del mundo;<sup class="crossreference" data-cr="#ces-RVR1960-26395A" data-link="(<a href=&quot;#ces-RVR1960-26395A&quot; title=&quot;See cross-reference A&quot;>A</a>)">(<a href="#ces-RVR1960-26395A" title="See cross-reference A">A</a>)</sup> el que me sigue, no andará en tinieblas, sino que tendrá la luz de la vida.</span> <span id="es-RVR1960-26396" class="text John-8-13"><sup class="versenum">13&nbsp;</sup>Entonces los fariseos le dijeron: Tú das testimonio acerca de ti mismo; tu testimonio no es verdadero.<sup class="crossreference" data-cr="#ces-RVR1960-26396B" data-link="(<a href=&quot;#ces-RVR1960-26396B&quot; title=&quot;See cross-reference B&quot;>B</a>)">(<a href="#ces-RVR1960-26396B" title="See cross-reference B">B</a>)</sup></span> <span id="es-RVR1960-26397" class="text John-8-14"><sup class="versenum">14&nbsp;</sup>Respondió Jesús y les dijo: Aunque yo doy testimonio acerca de mí mismo, mi testimonio es verdadero, porque sé de dónde he venido y a dónde voy; pero vosotros no sabéis de dónde vengo, ni a dónde voy.</span> <span id="es-RVR1960-26398" class="text John-8-15"><sup class="versenum">15&nbsp;</sup>Vosotros juzgáis según la carne; yo no juzgo a nadie.</span> <span id="es-RVR1960-26399" class="text John-8-16"><sup class="versenum">16&nbsp;</sup>Y si yo juzgo, mi juicio es verdadero; porque no soy yo solo, sino yo y el que me envió, el Padre.</span> </p><a class="full-chap-link" href="/passage/?search=Juan%208&amp;version=RVR1960" title="View Full Chapter">Read full chapter</a>
+<div class="crossrefs hidden">
+<h4>Cross references</h4><ol><li id="ces-RVR1960-26395A"><a href="#es-RVR1960-26395" title="Go to Juan 8:12">Juan 8:12</a> : <a class="crossref-link" href="/passage/?search=Mateo%205%3A14%2CJuan%209%3A5&amp;version=RVR1960" data-bibleref="Mateo 5:14, Juan 9:5">Mt. 5.14; Jn. 9.5.</a></li>
+
+<li id="ces-RVR1960-26396B"><a href="#es-RVR1960-26396" title="Go to Juan 8:13">Juan 8:13</a> : <a class="crossref-link" href="/passage/?search=Juan%205%3A31&amp;version=RVR1960" data-bibleref="Juan 5:31">Jn. 5.31.</a></li>
+
+</ol></div> <!--end of crossrefs-->
+</div>
+</div>
+'
+      )
+    } else {
+      NULL
+    }
+  }
+
+  httr2::with_mocked_responses(mock_response_success_multiple, {
+    result <- get_bible_verse("Juan 8:12-16")
+    expect_type(result, "character")
+    expect_length(result, 1)
+    expect_match(result,
+                 "> *__Juan 8:12-16__: ^**12**^ Otra vez Jesús les habló, diciendo: Yo soy la luz del mundo; el que me sigue, no andará en tinieblas, sino que tendrá la luz de la vida. ^**13**^ Entonces los fariseos le dijeron: Tú das testimonio acerca de ti mismo; tu testimonio no es verdadero. ^**14**^ Respondió Jesús y les dijo: Aunque yo doy testimonio acerca de mí mismo, mi testimonio es verdadero, porque sé de dónde he venido y a dónde voy; pero vosotros no sabéis de dónde vengo, ni a dónde voy. ^**15**^ Vosotros juzgáis según la carne; yo no juzgo a nadie. ^**16**^ Y si yo juzgo, mi juicio es verdadero; porque no soy yo solo, sino yo y el que me envió, el Padre.*",
+                 fixed = TRUE)
+  })
+
+
+  # Test case 4: Mock a response with no verses found
   mock_response_no_verses <- function(req) {
     if (grepl("search=this\\+is\\+a\\+non\\+existing\\+book\\+1:1", req$url)) {
       httr2::response(
@@ -80,7 +117,7 @@ test_that("get_bible_verse works correctly", {
     expect_null(result)
   })
 
-  # Test case 4: Mock a response with an error
+  # Test case 5: Mock a response with an error
   mock_response_error <- function(req) {
     if (grepl("search=error", req$url)) {
       httr2::response(status_code = 500)
