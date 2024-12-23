@@ -9,5 +9,9 @@ fill_na <- function(x) {
 
 
 to_sentence <- function(x) {
-  gsub("(?<=\\.|^)(\\s*)([a-z])", "\\1\\U\\2", tolower(x), perl = TRUE)
+
+  new_x <- gsub("(?<=\\.|!|\\?|^)(\\s*)([a-z])", "\\1\\U\\2", tolower(x), perl = TRUE)
+  new_x <- gsub("\\bi\\b", "I", new_x)
+
+  return(new_x)
 }
