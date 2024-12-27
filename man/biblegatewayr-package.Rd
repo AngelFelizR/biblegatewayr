@@ -4,9 +4,9 @@
 \name{biblegatewayr-package}
 \alias{biblegatewayr}
 \alias{biblegatewayr-package}
-\title{biblegatewayr: Access Bible Verses from BibleGateway}
+\title{biblegatewayr: Retrieve Bible Verses from Bible Gateway}
 \description{
-| This R package provides functions to interact with the BibleGateway web page. It includes 'get_bible_verse' to retrieve specific verses by canonical reference (e.g., "John 3:16") and 'find_bible_verse' to search for verses containing specific text. Both functions support multiple Bible versions and return formatted output, making it easy to incorporate Bible verses into markdown documents.
+| Provides functions to interact with the BibleGateway web page. It includes 'get_bible_verse' to retrieve specific verses by canonical reference (e.g., "John 3:16") and 'find_bible_verse' to search for verses containing specific text. Both functions support multiple Bible versions and return formatted output, making it easy to incorporate Bible verses into 'markdown documents'.
 }
 \seealso{
 Useful links:
@@ -18,7 +18,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Angel Feliz \email{angel.esteban.feliz@gmail.com} (\href{https://orcid.org/0009-0007-2910-1808}{ORCID})
+\strong{Maintainer}: Angel Feliz \email{angel.esteban.feliz@gmail.com} (\href{https://orcid.org/0009-0007-2910-1808}{ORCID}) [copyright holder]
 
 }
 \keyword{internal}

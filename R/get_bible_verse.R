@@ -11,7 +11,8 @@
 #' @return Invisibly returns a character string with the formatted Bible verse, or NULL if no verse is found.
 #' The formatted verse is also printed to the console.
 #'
-#' @examplesIf interactive()
+#' @examples
+#' if(interactive()){
 #' # Get a specific verse (printing to console)
 #' get_bible_verse("Juan 3:16")
 #'
@@ -21,6 +22,7 @@
 #'
 #' # Example of no results.
 #' get_bible_verse("this is a non existing book 1:1")
+#' }
 #' @export
 get_bible_verse <- function(search, version = "RVR1960") {
   # URL Construction and Request

@@ -22,7 +22,7 @@ This function searches for Bible verses using the BibleGateway web site based on
 It returns the formatted verse text with context.
 }
 \examples{
-\dontshow{if (interactive()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+if(interactive()){
 # Search for a single verse (printing to console)
 find_bible_verse("el amor es pasciente")
 
@@ -33,5 +33,5 @@ cat(result, sep = "\n")
 
 # Example of no results
 find_bible_verse("this_is_a_non_sense_query")
-\dontshow{\}) # examplesIf}
+}
 }

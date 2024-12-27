@@ -11,7 +11,8 @@
 #' @return Invisibly returns a character vector with the formatted Bible verse(s) found,
 #'         or NULL if no verses are found. The formatted verses are also printed to the console.
 #'
-#' @examplesIf interactive()
+#' @examples
+#' if(interactive()){
 #' # Search for a single verse (printing to console)
 #' find_bible_verse("el amor es pasciente")
 #'
@@ -22,7 +23,7 @@
 #'
 #' # Example of no results
 #' find_bible_verse("this_is_a_non_sense_query")
-#'
+#' }
 #' @export
 find_bible_verse <- function(text_to_find, version = "RVR1960") {
   # URL Construction and Request

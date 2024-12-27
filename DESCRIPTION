@@ -1,15 +1,15 @@
 Package: biblegatewayr
-Title: Access Bible Verses from BibleGateway
+Title: Retrieve Bible Verses from Bible Gateway
 Version: 0.1.0
 Authors@R: 
     person("Angel", "Feliz", email = "angel.esteban.feliz@gmail.com", role = c("aut", "cre", "cph"), comment = c(ORCID = "0009-0007-2910-1808"))
 Description: |
-    This R package provides functions to interact with the BibleGateway web page.
-    It includes 'get_bible_verse' to retrieve specific verses by canonical
-    reference (e.g., "John 3:16") and 'find_bible_verse' to search for verses
-    containing specific text. Both functions support multiple Bible versions 
-    and return formatted output, making it easy to incorporate Bible verses
-    into markdown documents.
+    Provides functions to interact with the BibleGateway web page. It includes
+    'get_bible_verse' to retrieve specific verses by canonical reference
+    (e.g., "John 3:16") and 'find_bible_verse' to search for verses containing
+    specific text. Both functions support multiple Bible versions and return
+    formatted output, making it easy to incorporate Bible verses
+    into 'markdown documents'.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

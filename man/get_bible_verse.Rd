@@ -22,7 +22,7 @@ This function retrieves a specific Bible verse using the BibleGateway web site
 based on a verse reference query. It returns the formatted verse text.
 }
 \examples{
-\dontshow{if (interactive()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+if(interactive()){
 # Get a specific verse (printing to console)
 get_bible_verse("Juan 3:16")
 
@@ -32,5 +32,5 @@ cat(result)
 
 # Example of no results.
 get_bible_verse("this is a non existing book 1:1")
-\dontshow{\}) # examplesIf}
+}
 }
